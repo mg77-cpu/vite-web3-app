@@ -10,7 +10,7 @@ const App = () => {
         loop
         muted
       >
-        <source src="../images/lines.webm" type="video/mp4" />
+        <source src="../images/lines.webm" type="video/mp4/webm" />
         Your browser does not support the video tag.
       </video>
       <div className="relative z-10 flex flex-col w-full h-screen justify-start items-center overflow-auto">
