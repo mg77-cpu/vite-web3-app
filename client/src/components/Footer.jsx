@@ -2,7 +2,7 @@ import bl from "../../images/bl.svg"
 
 const Footer = () => {
     return (
-        <div className="w-full flex md:justify-center justify-between items-center flex-col p-4 white-glassmorphism relative top-full ">
+        <div className="w-full flex md:justify-center justify-between items-center flex-col p-4 white-glassmorphism rounded-none h-screen relative top-full ">
             <div className="w-full flex sm:flex-row flex-col justify-between items-center my-4">
                 <div>
                     <img src={bl} alt="logo" className="w-32" />

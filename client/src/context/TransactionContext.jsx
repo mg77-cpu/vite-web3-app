@@ -34,6 +34,8 @@ export const TransactionProvider = ({ children }) => {
     const [transactionCount, setTransactionCount] = useState(localStorage.getItem("transactionCount"));
     const [parsedAmount, setParsedAmount] = useState(null);
     const [transactions, setTransactions] = useState([]);
+    const [isWalletConnected, setIsWalletConnected] = useState(false); // Flag for wallet connection
+    const [hasBeenConnected, setHasBeenConnected] = useState(false);
 
     const handleChange = (e, name) => {
         setFormData((prevState) => ({ ...prevState, [name]: e.target.value }));
@@ -66,44 +68,50 @@ export const TransactionProvider = ({ children }) => {
     }
 
       useEffect(() => {
-        getCurrentWalletConnected();
+        walletListener();
       }, [connectedAccount]);
 
-      useEffect(() => {
-        walletListener();
-      }, []);
-
-
-      const getCurrentWalletConnected = async () => {
-        if (typeof window != "undefined" && typeof window.ethereum != "undefined") {
-          try {
-            const accounts = await window.ethereum.request({
-              method: "eth_accounts",
-            });
-            if (accounts.length > 0) {
-              setConnectedAccount(accounts[0]);
-              getTransactions();
-              console.log(connectedAccount);
-            } else {
-              toast.warn('Connect your Wallet using the connect button', {
+      const walletListener = () => {
+        if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
+          // Add the accountsChanged listener
+          window.ethereum.on("accountsChanged", (accounts) => {
+            if (accounts.length === 0 && hasBeenConnected) {
+              // Wallet address removed
+              toast.warn('Wallet disconnected.', {
                 position: "bottom-right",
                 autoClose: 5000,
-                hideProgressBar: false,
+                hideProgressBar: true,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true,
                 progress: undefined,
                 theme: "dark",
-                });
-              console.log("Connect to MetaMask using the Connect button");
+              });
+    
+              setIsWalletConnected(false); // Reset flag
+              setConnectedAccount(null); // Clear wallet address
+              console.log("Wallet disconnected");
+            } else if (isWalletConnected && accounts[0] !== connectedAccount) {
+              // Wallet address changed
+              //setWalletAddress(accounts[0]); // Update wallet address
+              toast.info('Wallet changed successfully!', {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+              });
+              console.log(`Wallet changed to ${accounts[0]}`);
             }
-          } catch (err) {
-            console.error(err.message);
-          }
+          });
         } else {
-          /* MetaMask is not installed */
+          // MetaMask is not installed
+          setConnectedAccount(null);
           console.log("Please install MetaMask");
-          toast.error('Please install MetaMask!', {
+          toast.warn('Please install MetaMask', {
             position: "bottom-right",
             autoClose: 5000,
             hideProgressBar: false,
@@ -111,57 +119,14 @@ export const TransactionProvider = ({ children }) => {
             pauseOnHover: true,
             draggable: true,
             progress: undefined,
-            theme: "colored",
-            });
+            theme: "dark",
+          });
         }
       };
-
-      const walletListener = async () => {
-        try {
-            if (!ethereum && !window.ethereum) {
-                toast.warn('Please install MetaMask', {
-                    position: "bottom-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    });
-                console.log("MetaMask is not installed.");
-                return; // Exit if no ethereum object
-            }
-            const accounts = await window.ethereum.request({
-                method: "eth_accounts",
-              });
-            if (accounts.length) {
-
-            window.ethereum.on("accountsChanged", (accounts) => {
-                setConnectedAccount(accounts[0]);
-                
-                    toast.info('Wallet changed successfully',
-                      {
-                        position: "top-right",
-                        autoClose: 5000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        progress: undefined,
-                        theme: "colored",
-                      });
-                console.log(accounts[0]);
-              });
-            
-            } else {
-                console.log("No accounts found");
-                setConnectedAccount(null); // Ensure state is null when no accounts are found
-            }
-        } catch (error) {
-            console.error("Error checking wallet connection:", error);
-        }
-     };
+    
+      useEffect(() => {
+        walletListener();
+      }, [connectedAccount])
 
 
     const checkTransactions = async () => {
@@ -177,13 +142,18 @@ export const TransactionProvider = ({ children }) => {
 
 
     const connectWallet = async () => {
-        if (typeof window != "undefined" && typeof window.ethereum != "undefined") {
-          try {
-            /* MetaMask is installed */
-            const accounts = await window.ethereum.request({
-              method: "eth_requestAccounts",
-            });
+      if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
+        try {
+          /* MetaMask is installed */
+          const accounts = await window.ethereum.request({
+            method: "eth_requestAccounts",
+          });
+  
+          // Check if wallet address is already set to avoid duplicate toasts
+          if (accounts.length > 0 && accounts[0] !== walletAddress) {
             setConnectedAccount(accounts[0]);
+            setIsWalletConnected(true);
+            setHasBeenConnected(true);
             toast.info('Wallet Connected Successfully', {
               position: "top-right",
               autoClose: 5000,
@@ -193,25 +163,26 @@ export const TransactionProvider = ({ children }) => {
               draggable: true,
               progress: undefined,
               theme: "colored",
-              });
-          } catch (err) {
-            console.error(err.message);
-          }
-        } else {
-          /* MetaMask is not installed */
-          console.log("Please install MetaMask");
-          toast.error('Please install MeataMask', {
-            position: "bottom-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
             });
+          }
+        } catch (err) {
+          console.error(err.message);
         }
-      };
+      } else {
+        /* MetaMask is not installed */
+        console.log("Please install MetaMask!");
+        toast.error('Please install a web3 wallet.', {
+          position: "bottom-right",
+          autoClose: 5000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+        });
+      }
+    };
 
     
       const sendTransaction = async () => {
