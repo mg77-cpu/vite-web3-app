@@ -4,8 +4,7 @@ import { cutAddress } from "../utils/cutddress";
 
 import txData from "../utils/txData";
 import  useFetch  from "../hooks/useFetch";
-import bi from "../../images/bi.svg";
-import b1 from "../../images/b1.svg";
+
 import wi from "../../images/wi.jpg";
 
 

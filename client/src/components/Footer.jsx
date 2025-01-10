@@ -1,11 +1,11 @@
-import bl from "../../images/bl.svg"
+import bn from "../../images/bn.gif"
 
 const Footer = () => {
     return (
-        <div className="w-full flex md:justify-center justify-between items-center flex-col p-4 white-glassmorphism rounded-none h-screen relative top-full ">
+        <div className="w-full flex md:justify-center justify-between items-center flex-col p-4 white-glassmorphism rounded-none relative top-full ">
             <div className="w-full flex sm:flex-row flex-col justify-between items-center my-4">
                 <div>
-                    <img src={bl} alt="logo" className="w-32" />
+                    <img src={bn} alt="logo" className="w-32" />
                 </div>
                 <div className="flex flex-1 justify-evenly items-center flex-wrap sm:mt-0 mt-5 w-full">
                     <p className="text-white text-center mx-2 cursor-pointer text-bold">Market</p>

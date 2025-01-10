@@ -10,32 +10,31 @@ export const TransactionContext = React.createContext();
 
 
 export const TransactionProvider = ({ children }) => {
-    
-    const [state, setState] = useState({web3:null, contract: null});
 
-    useEffect(() => {
-    const provider = new Web3.providers.HttpProvider("http://localhost:7545");
-    async function contractInstance() {
-        const web3 = new Web3(provider);
-        const contract = new web3.eth.Contract(
-            contractABI, 
-            contractAddress);
-            console.log(contract);
-        setState({web3:web3, contract:contract});
-    }
-    provider && contractInstance();
-  }, []);
-  console.log(state);
+  //   useEffect(() => {
+  //   const provider = new Web3.providers.HttpProvider("http://localhost:7545");
+  //   async function contractInstance() {
+  //       const web3 = new Web3(provider);
+  //       const contract = new web3.eth.Contract(
+  //           contractABI, 
+  //           contractAddress);
+  //           console.log(contract);
+  //       setState({web3:web3, contract:contract});
+  //   }
+  //   provider && contractInstance();
+  // }, []);
+  // console.log(state);
 
 
     const [formData, setFormData] = useState({ addressTo: '', amount: '', keyword: '', message: ''});
-    const [connectedAccount, setConnectedAccount] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [transactionCount, setTransactionCount] = useState(localStorage.getItem("transactionCount"));
     const [parsedAmount, setParsedAmount] = useState(null);
     const [transactions, setTransactions] = useState([]);
+    const [state, setState] = useState({web3: null, contract: null});
     const [isWalletConnected, setIsWalletConnected] = useState(false); // Flag for wallet connection
     const [hasBeenConnected, setHasBeenConnected] = useState(false);
+    const [connectedAccount, setConnectedAccount] = useState(null);
 
     const handleChange = (e, name) => {
         setFormData((prevState) => ({ ...prevState, [name]: e.target.value }));
@@ -65,12 +64,70 @@ export const TransactionProvider = ({ children }) => {
     } else {
         console.log("connect your wallet")
       }
-    }
+    };
+
+    const checkTransactions = async () => {
+      try {
+          const { contract } = state;
+          const currentTransactionsCount = await contract.methods.getAllTransactionCount().call();
+          window.localStorage.setItem("transactionCount", currentTransactionsCount);
+
+      } catch (error) {
+          console.log(error); 
+      }
+  };
+
+      useEffect(() => {
+        getTransactions();
+      }, [connectedAccount]);
 
       useEffect(() => {
         walletListener();
       }, [connectedAccount]);
 
+      const connectWallet = async () => {
+        if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
+          try {
+            /* MetaMask is installed */
+            const accounts = await window.ethereum.request({
+              method: "eth_requestAccounts",
+            });
+    
+            // Check if wallet address is already set to avoid duplicate toasts
+            if (accounts.length > 0 && accounts[0] !== connectedAccount) {
+              //setWalletAddress(accounts[0]);
+              setIsWalletConnected(true);
+              setHasBeenConnected(true);
+              toast.success('Wallet Connected Successfully', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "colored",
+              });
+            }
+          } catch (err) {
+            console.error(err.message);
+          }
+        } else {
+          /* MetaMask is not installed */
+          console.log("Please install MetaMask!");
+          toast.error('Please install a web3 wallet.', {
+            position: "bottom-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "colored",
+          });
+        }
+      };
+    
       const walletListener = () => {
         if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
           // Add the accountsChanged listener
@@ -80,7 +137,7 @@ export const TransactionProvider = ({ children }) => {
               toast.warn('Wallet disconnected.', {
                 position: "bottom-right",
                 autoClose: 5000,
-                hideProgressBar: true,
+                hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true,
@@ -97,7 +154,7 @@ export const TransactionProvider = ({ children }) => {
               toast.info('Wallet changed successfully!', {
                 position: "bottom-right",
                 autoClose: 5000,
-                hideProgressBar: true,
+                hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true,
@@ -109,7 +166,7 @@ export const TransactionProvider = ({ children }) => {
           });
         } else {
           // MetaMask is not installed
-          setConnectedAccount(null);
+          //setWalletAddress(null);
           console.log("Please install MetaMask");
           toast.warn('Please install MetaMask', {
             position: "bottom-right",
@@ -123,68 +180,93 @@ export const TransactionProvider = ({ children }) => {
           });
         }
       };
-    
+
       useEffect(() => {
-        walletListener();
-      }, [connectedAccount])
-
-
-    const checkTransactions = async () => {
-        try {
-            const { contract } = state;
-            const currentTransactionsCount = await contract.methods.getAllTransactionCount().call();
-            window.localStorage.setItem("transactionCount", currentTransactionsCount);
-
-        } catch (error) {
-            console.log(error); 
-        }
-    }
-
-
-    const connectWallet = async () => {
-      if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
-        try {
-          /* MetaMask is installed */
-          const accounts = await window.ethereum.request({
-            method: "eth_requestAccounts",
-          });
+        const initializeContract = async () => {
+          if (window.ethereum) {
+            try {
+              // Request account access if needed
+              await window.ethereum.request({ method: 'eth_requestAccounts' });
+      
+              // Create web3 instance with MetaMask provider
+              const web3 = new Web3(window.ethereum);
+              console.log("Web3 instance:", web3);
   
-          // Check if wallet address is already set to avoid duplicate toasts
-          if (accounts.length > 0 && accounts[0] !== walletAddress) {
-            setConnectedAccount(accounts[0]);
-            setIsWalletConnected(true);
-            setHasBeenConnected(true);
-            toast.info('Wallet Connected Successfully', {
-              position: "top-right",
-              autoClose: 5000,
-              hideProgressBar: true,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              progress: undefined,
-              theme: "colored",
-            });
+              const accounts = await web3.eth.getAccounts();
+              console.log(accounts[0]);
+              console.log("Connected wallet:", connectedAccount)
+              if (accounts.length === 0) {
+                setConnectedAccount(accounts[0]);
+              toast.info('Wallet Connected Successfully', {
+                        position: "top-right",
+                        autoClose: 3000,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "colored",
+                        });
+                        // return;
+              } else {
+              // Get network ID
+              const networkId = await web3.eth.net.getId();
+              console.log("Network Id:", networkId);
+              const networkID = networkId.toString();
+              const correctNetworkId = "84532";  // Network ID for Base Sepolia testnet
+              console.log("Network ID:", networkID);
+            
+              if (networkID !== correctNetworkId) {
+                toast.warn("Network is incorrect. Please connect to the Base Sepolia testnet.", {
+                  position: "bottom-right",
+                  autoClose: 5000,
+                  hideProgressBar: true,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  progress: undefined,
+                  theme: "colored",
+                });
+                console.error("Network is not correct. Please connect to the Base Sepolia testnet.");            
+            }
+      
+              if (networkID) {
+                const contract = new web3.eth.Contract(contractABI, contractAddress);
+                // console.log(contract);
+                // console.log(web3);
+                setState({ web3, contract });
+                // console.log(contract);
+                // console.log(web3);
+              } else {
+                console.error("Contract not deployed on the current network");
+              }
+            }
+            } catch (error) {
+              console.error("Failed to load web3 or contract.", error);
+            }
+          } else {
+            console.error("MetaMask not detected. Please install MetaMask.");
           }
-        } catch (err) {
-          console.error(err.message);
-        }
-      } else {
-        /* MetaMask is not installed */
-        console.log("Please install MetaMask!");
-        toast.error('Please install a web3 wallet.', {
-          position: "bottom-right",
-          autoClose: 5000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "colored",
-        });
-      }
-    };
+      
+        };
+      
+        // Initialize contract
+        initializeContract();
+      
+        // Clean up the effect
+        return () => {
+          setState({ contract: null, web3: null });
+        };
+      }, []);
+      console.log(state);
+      console.log(connectedAccount);
 
-    
+
+      useEffect(() => {
+        console.log("State updated:", state);
+    }, [state]);
+
+
       const sendTransaction = async () => {
         const { contract, web3 } = state;
         const { addressTo, amount, message, keyword } = formData;
