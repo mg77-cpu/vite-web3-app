@@ -5,6 +5,8 @@ import React, { useContext } from 'react';
 import { Loader } from "./";
 import { TransactionContext } from "../context/TransactionContext.jsx";
 import { cutAddress } from "../utils/cutddress.js";
+import { ToastContainer, toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 
 const commonStyles = "min-h-[70px] sm:px-0 px-2 sm:min-w-[120px] flex justify-center items-center border-[0.5px] border-gray-400 text-sm font-light text-white font-semibold ";
@@ -27,10 +29,69 @@ const Welcome = () => {
         const { addressTo, amount, keyword, message } = formData;
     
         e.preventDefault();
+
+        const ethAddressRegex = /^(0x[a-fA-F0-9]{40})$/;
+
+        if (!addressTo) {
+                toast.error("Receiving wallet address cannot be empty.", {
+                  position: "bottom-right",
+                  autoClose: 2500,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  progress: undefined,
+                  theme: "colored",
+                });
+              } else if (!ethAddressRegex.test(addressTo)) {
+                toast.error("Please provide a valid ETH wallet address.", {
+                    position: "bottom-right",
+                    autoClose: 2500,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "colored",
+                  });
+              } else if (isNaN(amount) || amount <= 0 || !amount) {
+                toast.error("Amount must be greater than zero and a valid number.", {
+                    position: "bottom-right",
+                    autoClose: 2500,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "colored",
+                  });
+              } else if (keyword.length > 10 || !keyword) {
+                toast.error("Key word must be less than 10 characters and is required.", {
+                    position: "bottom-right",
+                    autoClose: 2500,
+                    hideProgressBar: true,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "colored",
+                  });
+                } else if (!message) {
+                    toast.error("Message cannot be empty.", {
+                        position: "bottom-right",
+                        autoClose: 2500,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        theme: "colored",
+                      });
+                } else {
     
-        if (!addressTo || !amount || !keyword || !message) return;
-    
-        sendTransaction();
+                sendTransaction();
+
+            }
       };
 
     return (
@@ -47,7 +108,7 @@ const Welcome = () => {
                 <button
                    type="button"
                    onClick={connectWallet}
-                   className="flex flex-row justify-center items-center my-5 bg-[#000070] p-3 rounded-full cursor-pointer hover:bg-[#2546bd]">
+                   className="flex flex-row justify-center items-center my-5 bg-[#000070] p-3 rounded-full cursor-pointer hover:bg-[#417ec3]">
                     <AiFillCustomerService className="text-white mr-2" />
                     <p className="text-white text-base font-semibold">
                         Connect Web3 Wallet
@@ -109,7 +170,7 @@ const Welcome = () => {
                                 <button
                                    type="button"
                                    onClick={handleSubmit}
-                                   className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#3d4f7c] rounded-full cursor-pointer text-gradient"
+                                   className="text-white w-full mt-2 border-[1px] p-2 border-[#3d4f7c] hover:bg-[#5ba4f7] rounded-full cursor-pointer text-gradient"
                                 >
                                   Send Some Crypto
                                 </button>
@@ -118,8 +179,7 @@ const Welcome = () => {
                 </div>
             </div>
         </div>
-
-       </div>
+    </div>
     );
 }
 
