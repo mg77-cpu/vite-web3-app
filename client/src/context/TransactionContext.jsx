@@ -67,11 +67,14 @@ export const TransactionProvider = ({ children }) => {
     };
 
     const checkTransactions = async () => {
+      const { contract } = state;
       try {
-          const { contract } = state;
+        if (contract) {
           const currentTransactionsCount = await contract.methods.getAllTransactionCount().call();
           window.localStorage.setItem("transactionCount", currentTransactionsCount);
-
+        } else {
+          console.log("No contract instance");
+        }
       } catch (error) {
           console.log(error); 
       }
@@ -79,7 +82,7 @@ export const TransactionProvider = ({ children }) => {
 
       useEffect(() => {
         getTransactions();
-      }, [connectedAccount]);
+      }, [state]);
       
 
       const connectWallet = async () => {
@@ -97,7 +100,7 @@ export const TransactionProvider = ({ children }) => {
               setHasBeenConnected(true);
               toast.info('Wallet Connected Successfully', {
                 position: "top-right",
-                autoClose: 3000,
+                autoClose: 5000,
                 hideProgressBar: true,
                 closeOnClick: true,
                 pauseOnHover: true,
@@ -147,7 +150,7 @@ export const TransactionProvider = ({ children }) => {
               console.log("Wallet disconnected");
             } else if (isWalletConnected && accounts[0] !== connectedAccount) {
               // Wallet address changed
-              //setWalletAddress(accounts[0]); // Update wallet address
+              setConnectedAccount(accounts[0]); // Update wallet address
               toast.info('Wallet changed successfully!', {
                 position: "bottom-right",
                 autoClose: 3000,
@@ -187,36 +190,32 @@ export const TransactionProvider = ({ children }) => {
           if (window.ethereum) {
             try {
               // Request account access if needed
-              // await window.ethereum.request({ method: 'eth_requestAccounts' });
-              // Create web3 instance with MetaMask provider
-              toast.warn("Note that you need a crypto wallet and you need to connect it to the website for you to use the site.", {
-                position: "top-center",
-                autoClose: 8000,
-                hideProgressBar: true,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "colored",
-              });
+              await window.ethereum.request({ method: 'eth_requestAccounts' });
 
+              // Create web3 instance with MetaMask provider
               const web3 = new Web3(window.ethereum);
               console.log("Web3 instance:", web3);
-  
+
               const accounts = await web3.eth.getAccounts();
-              console.log(accounts[0]);
-              // console.log("Connected wallet:", connectedAccount)
+              if (accounts.length != 0 && !isWalletConnected) {
+                 setConnectedAccount(accounts[0]);
+                 setHasBeenConnected(true);
+                 setIsWalletConnected(true);
+                 toast.info('Wallet Connected Successfully', {
+                      position: "top-right",
+                      autoClose: 3000,
+                      hideProgressBar: true,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                      progress: undefined,
+                      theme: "colored",
+                      });
+                      setIsWalletConnected(true)
+                } 
 
-              if (!connectedAccount) {
-                // setConnectedAccount(accounts[0]);
-              // connectWallet();
-                        // return;
-              connectWallet();
-
-              } else {
               // Get network ID
               const networkId = await web3.eth.net.getId();
-              console.log("Network Id:", networkId);
               const networkID = networkId.toString();
               const correctNetworkId = "84532";  // Network ID for Base Sepolia testnet
               console.log("Network ID:", networkID);
@@ -237,15 +236,13 @@ export const TransactionProvider = ({ children }) => {
       
               if (networkID) {
                 const contract = new web3.eth.Contract(contractABI, contractAddress);
-                // console.log(contract);
-                // console.log(web3);
                 setState({ web3, contract });
               } else {
                 console.error("Contract not deployed on the current network");
               }
-            }
+            
             } catch (error) {
-              toast.error("Wallet connection error, please note that you need to be connected to the site with a wallet to use the site!", {
+              toast.error("Internal server error, please check your internet connection!", {
                 position: "bottom-right",
                 autoClose: 5000,
                 hideProgressBar: true,
@@ -280,7 +277,7 @@ export const TransactionProvider = ({ children }) => {
         return () => {
           setState({ contract: null, web3: null });
         };
-      }, []);
+      }, [contractABI, contractAddress]);
       console.log(state);
       console.log(connectedAccount);
 
@@ -293,6 +290,23 @@ export const TransactionProvider = ({ children }) => {
       const sendTransaction = async () => {
       const { contract, web3 } = state;
       const { addressTo, amount, message, keyword } = formData;
+      const parsedAmount = web3.utils.toWei(amount, "ether");
+      setParsedAmount(parsedAmount); 
+
+      if (!web3) {
+        toast.warn('Error! Please check your internet connection and refresh the page!', {
+            position: "top-center",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "colored",
+        });
+        
+
+    }
     
         try {
             if (!connectedAccount) {
@@ -308,13 +322,8 @@ export const TransactionProvider = ({ children }) => {
                 });
                 return;
             } 
-
-            
     
             if (contract && web3) {
-              const parsedAmount = web3.utils.toWei(amount, "ether");
-              setParsedAmount(parsedAmount);
-
                 const gas = await contract.methods.addToBlockchain(
                     addressTo,
                     parsedAmount,
@@ -373,24 +382,14 @@ export const TransactionProvider = ({ children }) => {
                 // Update state after successful transaction
                 const transactionsCount = await contract.methods.getAllTransactionCount().call();
                 setTransactionCount(transactionsCount.toString()); // Converts to string
-            } else {
-              toast.error("Error! Please check your wallet and internet connection!", {
-                position: "bottom-right",
-                autoClose: 5000,
-                hideProgressBar: true,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "colored",
-            });
+    
             }
         } catch (error) {
             console.error(error);
             toast.error('Transaction failed. Please try again.', {
                 position: "top-right",
                 autoClose: 5000,
-                hideProgressBar: true,
+                hideProgressBar: false,
                 closeOnClick: true,
                 pauseOnHover: true,
                 draggable: true,
@@ -401,7 +400,7 @@ export const TransactionProvider = ({ children }) => {
             // Ensure loading state is reset in both success and error cases
             setIsLoading(false);
             setParsedAmount(null);
-            window.location.reload();
+            // window.location.reload();
         }
     };
     

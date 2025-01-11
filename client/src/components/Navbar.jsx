@@ -1,7 +1,6 @@
 import { HiMenuAlt4 } from 'react-icons/hi';
 import { AiOutlineClose } from 'react-icons/ai';
 import { useState } from 'react';
-import bl from "../../images/bl.svg";
 import bn from "../../images/bn.gif";
 
 
