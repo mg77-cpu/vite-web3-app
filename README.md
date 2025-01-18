@@ -45,3 +45,11 @@ To get started with the project, follow these steps:
 To build the project for production, use the following command:
 ```sh
 npm run build
+
+** Contributing **
+
+ Contributions are welcome! If you have any suggestions or improvements, feel free to open an issue or create a pull request.
+
+** License **
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
